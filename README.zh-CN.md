@@ -1,87 +1,83 @@
-# DSH Smart Compact v0.2.1
+# DSH Smart Compact v0.3.0
 
-DeepSeek Harness（DSH）自动上下文压缩策略插件。针对长时编程会话，在下一次模型请求前按阈值触发 DSH 自带的 `compaction-basic` 引擎，压缩摘要随会话继续。**不会伪造一条“继续”消息，不自行删改任何聊天记录。**
+适用于 DeepSeek Harness（DSH）的 **Codex 风格自动上下文压缩插件**。只负责决定何时请求压缩，真正的摘要、历史记录维护、工具调用配对与恢复均由 DSH 原生 `compaction-basic` 完成。
 
-## 功能
+## 核心规则
 
-- 默认在上下文窗口 70% 处自动触发，无默认绝对 Token 上限；1M 上下文模型约在 700K Token 触发。
-- 使用 DSH 官方 `ctx.compaction.compactIfNeeded(agent, 'context-overflow', signal)`；摘要的内容格式、工具调用配对、落盘事务均由 DSH 原生引擎处理。
-- 保留手动 `/compact`；无须用户连续发送“继续”。
-- 某次压缩返回 no-op 或失败时不会因同一上下文重复无限尝试；之后增长 2K token 再重试。失败后也总是放行正常模型请求。
-- 所有使用此 DSH Profile 的、支持 `compaction-basic` 的 agent/session 均适用。
-- 直接保留 DSH 输入框旁现成的上下文用量圆环；在「设置 → 插件 → 可配置」中修改自动压缩百分比。设置会保存到本地配置文件；只有回环地址和同源请求可以修改。
-- 无远程遥测、无额外第三方运行时依赖；本地设置界面不向第三方上传数据。
+- **默认 90%**：按照当前模型的上下文窗口动态计算；没有固定 256K 上限。
+- **95% 有效窗口安全边界**：如果 DSH 当前请求显式提供 `maxTokens`，会额外预留这部分输出空间。
+- **按模型覆盖**：指定 `provider` 与 `model`，可单独设置更低的比例或固定 Token 阈值。
+- **模型切换即时重算**：同一会话切换 128K/256K/1M 模型，阈值跟随模型窗口变化。
+- 每个 agent step 开始前检查，调用原生引擎 `compactIfNeeded(agent, 'context-overflow', signal)`；压缩后自然继续任务，不伪造“继续”消息，也不写入假历史。
+- 压缩失败或无可压缩区间时暂缓重试，避免同样上下文无限压缩；仍保留手动 `/compact`。
+- **不重复 DSH 的原生上下文圆环**：输入区原生圆环继续显示使用率与 Token 构成，阈值在「设置 → 插件 → 可配置 → Smart Compact」调整。
 
-## Windows 安装（原 DSH desktop Profile）
+默认计算规则：
 
-1. 启动 DSH Desktop 一次以初始化 `desktop` Profile，然后完整退出应用。
-2. 在 PowerShell 运行下方 GitHub 安装命令（本地源码安装见下一段）：
+```text
+min(
+  向下取整(模型上下文窗口 × 90%),
+  向下取整(模型上下文窗口 × 95%) - 当前请求明确预留的输出 Tokens,
+  可选的全局 Token 上限,
+  可选的单模型 Token 上限
+)
+```
+
+| 模型窗口 | 默认参考触发位置（无显式输出预留时） |
+|---|---:|
+| 32K | 28.8K |
+| 128K | 115.2K |
+| 256K | 230.4K |
+| 1M | 900K |
+
+**注意 DSH 内置压缩会更早执行：** 官方 `compaction-basic` 默认 `thresholdRatio: 0.8`，并额外预留输出 Token 与默认约 65,536 Token 的 headroom。因此本插件的 90% 是**本插件的触发线，不保证整体 DSH 一定等到 90% 才压缩**。为接近 Codex 的实际时机，可在所用 agent preset 的 `compaction-basic` 配置中协调设置 `thresholdRatio`、`headroomTokens`，但应保留溢出恢复功能。本插件不会擅自修改其他插件或原生配置。
+
+## Windows 安装和升级
+
+先彻底退出 DSH Desktop，再在 PowerShell 使用 DSH Desktop 自带命令：
 
 ```powershell
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-3. 重新启动 DSH Desktop。安装成功不等于插件已经被当前运行的进程加载。
-4. 可以使用 `dsh plugin --profile desktop list` 检查 bundle；观察 DSH 日志中的 `[dsh-smart-compact] enabled` 和 `compacted`。
-
-如需从下载后的本地源码安装，先解压 ZIP 并进入插件根目录，再执行：
-
-```powershell
-dsh plugin --profile desktop add (Get-Location).Path
-```
-
-> **注意：** `desktop` Profile 只能由 DSH Desktop 自带的 `dsh` 命令管理。不要用 npm/npx 安装的 CLI 管理 `desktop` Profile。如果 `dsh` 命令不存在，请先在桌面客户端的 **Manage dsh Command** 中安装命令。
->
-> DSH 需要能够加载 `@deepseek-ai/dsh-compaction-basic`。标准/代码类 preset 常自带；`minimal` 可能没有。若模型/Provider 没有暴露上下文窗口大小，本插件不强制猜值，交由 DSH 内置压缩策略处理。
+重新打开 DSH。若已经装过旧版本，请在 DSH 插件列表核实是否更新为 v0.3.0；必要时按当前 DSH 版本的插件更新流程重装。不要使用另一份 npm/npx CLI 管理受保护的 `desktop` Profile。
 
 ## 配置
 
-将仓库中的 `smart-compact.example.json` **复制**到 `$env:USERPROFILE\.dsh\smart-compact.json`（使用非默认 `DSH_HOME` 时放到 `$env:DSH_HOME\smart-compact.json`）。默认无需创建文件。
+可通过「设置 → 插件 → 可配置 → Smart Compact」调整全局触发比例；高级设置位于 `~/.dsh/smart-compact.json`（若自定义 `DSH_HOME` 则在对应目录）：
 
 ```json
 {
   "enabled": true,
-  "triggerRatio": 0.7,
+  "triggerRatio": 0.9,
+  "effectiveContextWindowRatio": 0.95,
   "maxTriggerTokens": null,
-  "retryGrowthTokens": 2048
+  "retryGrowthTokens": 2048,
+  "modelPolicies": [
+    {
+      "provider": "example-provider",
+      "model": "example-128k-model",
+      "triggerRatio": 0.85
+    },
+    {
+      "provider": "example-provider",
+      "model": "example-1m-model",
+      "autoCompactTokenLimit": 600000
+    }
+  ]
 }
 ```
 
-- `triggerRatio`：上下文窗口的比例，范围 0.20–0.95。
-- `maxTriggerTokens`：默认 `null`（无绝对上限）。如确需提前压缩，可手动设为 Token 整数；实际触发数为比例值与上限值中较小的一项。
-- `retryGrowthTokens`：上次失败/无变化后，至少增长多少 token 才再试。
-- `enabled: false`：停用本插件，不影响 DSH 原生压缩。
+**示例中的模型名称是占位符，不能直接当作真实 DSH 模型 ID。** 配置文件编辑后需重启 DSH；设置页滑杆保存后立即生效。若此前已在 JSON 中设置 `triggerRatio: 0.7` 或 `maxTriggerTokens: 262144`，升级不会覆盖个人配置，你需要自行修改。
 
-**直接编辑 JSON 配置文件后需要重启 DSH；使用「设置 → 插件 → 可配置」保存阈值后无需重启。**
+当模型容量未知、Token 计量失败、预留输出超过有效容量时，插件不会臆造阈值，而是保留 DSH 原生安全压缩行为。
 
-例如模型窗口为 272K，默认在约 190K 开始尝试；若窗口为 1M，则在约 700K 开始尝试。使用的是 DSH 的估算用量，未必等于服务商账单显示的输入 token。
-
-## 卸载
+## 测试与限制
 
 ```powershell
-dsh plugin --profile desktop remove dsh-smart-compact
+npm run check
 ```
 
-然后重启 DSH。原生 `compaction-basic` 不会被卸载；可选的 `smart-compact.json` 可以自行删除。
+CI 覆盖动态容量、模型覆盖、输出预留、切换模型、避免重复压缩、失败放行与本地设置接口。**尚未在你的 DSH Desktop 真实会话完成安装验收**，使用时应检查插件加载日志及内置压缩实际运行时机。
 
-## 兼容性及局限
-
-- 对照 DSH 0.1.0-rc.6 / 0.1.7-alpha 系列公开的 `agent/pre-step`、`agentPresets.serviceFor`、`tokenMeter`、`sessionProjections` 接口设计；实际 `desktop` Profile 的运行验收仍需在你的 DSH 实例进行。
-- 插件的设置卡片通过 DSH `settings.plugin.item` 插槽挂载；不覆盖或修改 DSH 内置圆环和统计面板。设置卡片与本地 HTTP 设置端点仅经过模拟和静态检查，尚未在目标 DSH Desktop 版本实测。界面不可用时不影响 Host 端压缩。
-- 不修改原生摘要提示词；关键上下文的保留质量由 DSH compaction-basic 决定，无法做到零信息损失。
-- 如果已经安装其他自动压缩插件（如 `auto-compact` / `dsh-auto-compact`），请先停用其中一个，避免重复策略竞争。
-- 仅用于合法的长会话上下文管理；不会绕过服务商模型的真实上下文窗口、调用额度和计费限制。
-
-## 原生圆环与插件设置
-
-DSH 输入区原生圆环继续负责显示使用率和详细 Token 统计。自动压缩插件不再生成第二个圆环。请打开「设置 → 插件 → 可配置」，展开 Smart Compact 卡片，通过滑杆保存触发阈值。阈值保存于 `~/.dsh/smart-compact.json`（或 `$DSH_HOME/smart-compact.json`），即改即生效。
-
-**安全约束：**设置接口仅接受 `localhost` / `127.0.0.1` / `::1` 的本地同源请求；如果 DSH Web 暴露在远程地址，该面板可能无法更改配置，自动压缩仍按已有设置工作。
-
-## 本地测试
-
-```powershell
-npm test
-```
-
-不需要先下载其他依赖。测试使用模拟 DSH 运行时，**不是实际 DSH 集成测试**。
+此项目非官方 Codex / DeepSeek 插件，采用 MIT License。

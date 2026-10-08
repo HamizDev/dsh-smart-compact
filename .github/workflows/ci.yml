@@ -17,3 +17,28 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm run check
       - run: npm pack --dry-run
+
+  release-tag:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag tested version without rewriting older releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}"
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            echo "Tag $TAG already exists"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$TAG" -m "DSH Smart Compact $TAG"
+          git push origin "refs/tags/$TAG"

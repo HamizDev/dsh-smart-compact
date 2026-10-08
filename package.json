@@ -1,7 +1,7 @@
 {
   "name": "dsh-smart-compact",
-  "version": "0.2.1",
-  "description": "Automatic context compaction for DSH using its native engine, with threshold controls in Plugin Settings (no duplicate context ring)",
+  "version": "0.3.0",
+  "description": "Codex-inspired DSH automatic context compaction, 90% model-window defaults, per-model limits and native DSH settings integration",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {

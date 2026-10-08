@@ -1,5 +1,9 @@
 # This bundle mounts the policy on the host plane, not inside an agent preset.
 # One installation covers all sessions using this DSH profile.
+# NOTE: DSH Desktop's active compaction-basic backend is per Agent Preset.
+# This bundle intentionally does not patch nested preset definitions: doing so
+# would require overwriting entire user-customized preset plugin lists.
+# Exclusive mode requires a deliberate per-preset compaction-basic auto:false.
 - insert:
     - id: smart-compact
       name: dsh-smart-compact

@@ -4,5 +4,7 @@
   "effectiveContextWindowRatio": 0.95,
   "maxTriggerTokens": null,
   "retryGrowthTokens": 2048,
-  "modelPolicies": []
+  "modelPolicies": [],
+  "exclusive": true,
+  "maxOverflowRetries": 1
 }

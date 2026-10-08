@@ -1,67 +1,99 @@
 # DSH Smart Compact
 
-[简体中文说明](./README.zh-CN.md)
+[中文文档](./README.zh-CN.md)
 
-A **Codex-inspired** automatic context compaction trigger for DeepSeek Harness (DSH). It uses DSH's native `compaction-basic` engine, keeps DSH's built-in context meter and statistics popup, and provides threshold controls under **Settings → Plugins → Configurable**.
+A Codex-inspired automatic context compaction **controller** for DeepSeek Harness (DSH). The DSH `compaction-basic` backend remains installed and performs all summarization, transaction logging, session durability, and manual `/compact`. **Smart Compact alone decides automatic trigger timing** when the active Agent Preset's native compactor has `auto: false`.
 
-## Codex-style policy (v0.3.0)
+## Exclusive mode (v0.4.0)
 
-- **90% default** of the active model's reported context window. No default absolute 256K cap.
-- **95% effective-window safety ceiling**, minus the latest routed request's **explicit** reserved output `maxTokens` when present.
-- Optional exact `provider` / `model` policy with a *lower* threshold ratio or `autoCompactTokenLimit`.
-- The plugin checks between agent steps and delegates actual compaction to DSH (no forged continuation messages, no direct session-history edits). It leaves `/compact` intact.
-- Skips unavailable model capacity rather than inventing a token count. Does not continuously retry the same unchanged or failed attempt.
-- No telemetry or extra runtime npm dependencies.
+**Important: installing this bundle does NOT silently disable native compaction.** In DSH Desktop, `compaction-basic` lives inside the active Agent Preset (e.g. standard/cordis/ptc), not the host root. Changing or disabling the host's similarly named row is ineffective. DSH preset patches cannot safely target that nested child without restating the whole preset; we intentionally do not overwrite any user's Agent Presets.
 
-Calculation: `min(floor(contextWindow * ratio), floor(contextWindow * 0.95) - routedMaxTokens, optionalGlobalLimit, optionalModelLimit)`. Default `ratio = 0.90`. If the request doesn't expose a reliable output cap, this plugin reserves **0**, leaving the DSH engine's own safety policy in control.
+To enable sole-controller behavior:
 
-| Window | Trigger without explicit reserved output |
-|---|---:|
-| 32K | 28.8K |
-| 128K | 115.2K |
-| 256K | 230.4K |
-| 1M | 900K |
+1. Install or upgrade Smart Compact.
+2. Back up your current Agent Preset or profile patch.
+3. Edit the **active Agent Preset** using DSH's preset editing workflow (or create a custom preset). In the existing `compaction` group, find the existing `compaction-basic` plugin. **Leave the plugin enabled**, but give it `config: { auto: false }`. Preserve any other preexisting compaction backend settings.
+4. Restart DSH or create a **new session** using the updated preset; already-running Agent instances may retain their earlier preset generation.
+5. Confirm logs show Smart Compact acting in exclusive mode and that `/compact` remains available. Confirm a longer test session can compress and resume.
 
-**Important native DSH interaction:** DSH's standard `compaction-basic` independently auto-compacts at about **80%** by default, or earlier to preserve reserved completion tokens and ~65K headroom. This plugin **does not disable, monkey-patch or supersede** that safety behavior. Therefore 90% is this plugin's own threshold **not a promise** that actual compaction will wait until 90%. To align native compaction closer to Codex, adjust `compaction-basic`'s `thresholdRatio` and `headroomTokens` in your DSH agent preset, considering real output reservations and small-window models. Don't switch off overflow recovery.
+The relevant inner preset YAML fragment is:
 
-## Install / upgrade (DSH Desktop)
+```yaml
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+      config:
+        auto: false
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+    # Preserve your existing pruner and other preset rows.
+```
 
-Close DSH Desktop, then with its bundled CLI:
+This fragment illustrates **where** the option belongs. Do NOT replace the entire preset with this partial example.
+
+### Safety behavior
+
+- If the active backend still reports `auto: true`, Smart Compact **does not run a second proactive policy**, and leaves DSH's native automatic compactor and overflow listener in place.
+- If `auto` cannot be verified from the engine, Smart Compact **does not guess** or attempt to take over.
+- When it reports `auto: false`, Smart Compact invokes **`compactIfNeeded(agent, 'pressure', signal)`** at the configured threshold, retaining DSH's native recent-history strategy (instead of forcing overflow mode).
+- A **canonical** `CONTEXT_WINDOW_EXCEEDED` failure is handled separately: one bounded retry by default, only when DSH's durable surface generation actually advanced (including successful tool-result pruning before a failed summary). Cancellation, noncanonical failures, no mutation and exhausted retry budget preserve the original error.
+- Never uninstall or disable the backend itself: `/compact` and summary persistence require it. If you later disable Smart Compact, **restore `compaction-basic config.auto: true` first**, or native automatic compaction/overflow recovery will remain unavailable.
+
+## Trigger algorithm
+
+Default global threshold: 90% of the currently routed model's context window, with a 95% effective-window ceiling and any explicit completion-token reservation. Optional per-provider/model lower limits and a global absolute ceiling are supported. No default fixed-token cap.
+
+```text
+triggerTokens = min(
+  floor(modelContextWindow * triggerRatio),            # default 90%
+  floor(modelContextWindow * effectiveWindowRatio) - explicitOutputReservation, # default 95%
+  optionalGlobalMax, optionalExactModelMax
+)
+```
+
+The real DSH backend may still reject a pressure request when its own safety/retention configuration is invalid for small models. It is not appropriate to disable overflow protection or fabricate context capacity.
+
+## Install / update (Windows)
+
+Quit DSH Desktop and use the `dsh` command bundled with Desktop:
 
 ```powershell
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-Restart DSH Desktop and inspect the Plugins list/logs. If an older release is already installed, confirm the installed plugin source/version actually updates to 0.3.0 using your DSH version's plugin update/reinstall workflow. Never use an independent npm/npx CLI to manage the reserved `desktop` Profile.
+Restart Desktop, check the actual installed version (0.4.0), then apply the **Agent Preset** change above. Existing sessions may need to be recreated to adopt the new preset.
 
-## Configuration
+### Configuration
 
-Edit `~/.dsh/smart-compact.json` (or `$DSH_HOME/smart-compact.json`), or set the global ratio from **Settings → Plugins → Configurable → Smart Compact**:
+Plugin-local configuration: `~/.dsh/smart-compact.json` or `$DSH_HOME/smart-compact.json`. The plugin's slider is in **Settings → Plugins → Configurable**; the native context meter remains untouched.
 
 ```json
 {
   "enabled": true,
+  "exclusive": true,
+  "maxOverflowRetries": 1,
   "triggerRatio": 0.9,
   "effectiveContextWindowRatio": 0.95,
   "maxTriggerTokens": null,
   "retryGrowthTokens": 2048,
-  "modelPolicies": [
-    { "provider": "example-provider", "model": "example-128k-model", "triggerRatio": 0.85 },
-    { "provider": "example-provider", "model": "example-1m-model", "autoCompactTokenLimit": 600000 }
-  ]
+  "modelPolicies": []
 }
 ```
 
-The example model names above are placeholders, **not real model IDs**. Remove the entries or use the exact names found in your DSH routed request. Per-model overrides can only lower the global threshold (never exceed Codex's 90% ceiling). Set `maxTriggerTokens` to an integer for a global absolute ceiling; default is `null`.
+`exclusive: false` is an explicit compatibility mode that allows coexisting policy calls; this is **not recommended** because DSH may compact first. In exclusive mode, only verified `engine.config.auto === false` agents use Smart Compact's triggers and retry logic. If older profile overrides contain `triggerRatio: 0.7` or `maxTriggerTokens: 262144`, those are preserved across upgrades until manually changed.
 
-Previously saved `triggerRatio: 0.7` or `maxTriggerTokens: 262144` remains effective across upgrades until you change it. The settings slider changes `triggerRatio` immediately; editing the JSON file requires restarting DSH.
+`maxOverflowRetries: 0` disables the plugin's overflow recovery. An explicitly lower native `maxOverflowRetries` still bounds this value.
 
-## Compatibility and tests
+## Checks
 
 ```bash
 npm run check
 ```
 
-Unit/mocked tests cover varying context windows, model changes, reserved output, independent native delegation, failure continuation and settings access. **Actual DSH Desktop behavior remains to be verified** on the user's installed version; the native backend may compact earlier. This project is community maintained, not an official Codex or DeepSeek product.
-
-License: MIT.
+Node-based tests mock DSH's engine and waterfall events. **Real Desktop activation remains unverified** until someone checks the installed preset and session. No injected duplicate context circle. No telemetry. MIT license. Not affiliated with Codex or DeepSeek.

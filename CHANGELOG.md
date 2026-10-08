@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0
+
+- Add exclusive policy mode: Smart Compact alone requests automatic pressure compaction when active preset `compaction-basic` reports `auto: false`.
+- Prevent duplicate pressure calls while native automatic compaction is enabled (safe fallback).
+- Use the native `pressure` compaction trigger proactively, retaining native recent-history policy, rather than misusing overflow mode.
+- Restore bounded canonical context-overflow retry when native auto listeners are disabled. Require durable surface generation advancement; respect cancellation, zero/no-op, native retry cap and error propagation.
+- Document required Agent Preset change and safe rollback; preserve `/compact` and DSH native meter.
+
 ## v0.3.0
 
 - Use a Codex-inspired trigger: default 90% of the current model context window, with a 95% effective-window safety ceiling.

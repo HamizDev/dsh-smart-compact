@@ -1,15 +1,15 @@
-# DSH Smart Compact v0.2.0
+# DSH Smart Compact v0.2.1
 
 DeepSeek Harness（DSH）自动上下文压缩策略插件。针对长时编程会话，在下一次模型请求前按阈值触发 DSH 自带的 `compaction-basic` 引擎，压缩摘要随会话继续。**不会伪造一条“继续”消息，不自行删改任何聊天记录。**
 
 ## 功能
 
-- 默认在上下文窗口 70% 处自动触发；超大窗口默认不晚于约 256K token 触发。
+- 默认在上下文窗口 70% 处自动触发，无默认绝对 Token 上限；1M 上下文模型约在 700K Token 触发。
 - 使用 DSH 官方 `ctx.compaction.compactIfNeeded(agent, 'context-overflow', signal)`；摘要的内容格式、工具调用配对、落盘事务均由 DSH 原生引擎处理。
 - 保留手动 `/compact`；无须用户连续发送“继续”。
 - 某次压缩返回 no-op 或失败时不会因同一上下文重复无限尝试；之后增长 2K token 再重试。失败后也总是放行正常模型请求。
 - 所有使用此 DSH Profile 的、支持 `compaction-basic` 的 agent/session 均适用。
-- 输入框右侧展示上下文用量圆环，支持打开面板修改自动压缩百分比。设置会保存到本地配置文件；只有回环地址和同源请求可以修改。
+- 直接保留 DSH 输入框旁现成的上下文用量圆环；在「设置 → 插件 → 可配置」中修改自动压缩百分比。设置会保存到本地配置文件；只有回环地址和同源请求可以修改。
 - 无远程遥测、无额外第三方运行时依赖；本地设置界面不向第三方上传数据。
 
 ## Windows 安装（原 DSH desktop Profile）
@@ -42,19 +42,19 @@ dsh plugin --profile desktop add (Get-Location).Path
 {
   "enabled": true,
   "triggerRatio": 0.7,
-  "maxTriggerTokens": 262144,
+  "maxTriggerTokens": null,
   "retryGrowthTokens": 2048
 }
 ```
 
 - `triggerRatio`：上下文窗口的比例，范围 0.20–0.95。
-- `maxTriggerTokens`：可设为 `null` 关闭 256K 上限。实际触发 token 数量是两项中的较小值。
+- `maxTriggerTokens`：默认 `null`（无绝对上限）。如确需提前压缩，可手动设为 Token 整数；实际触发数为比例值与上限值中较小的一项。
 - `retryGrowthTokens`：上次失败/无变化后，至少增长多少 token 才再试。
 - `enabled: false`：停用本插件，不影响 DSH 原生压缩。
 
-**直接编辑 JSON 配置文件后需要重启 DSH；使用圆环面板保存阈值后无需重启。**
+**直接编辑 JSON 配置文件后需要重启 DSH；使用「设置 → 插件 → 可配置」保存阈值后无需重启。**
 
-例如模型窗口为 272K，默认在约 190K 开始尝试；若窗口为 1M，则在 256K 开始尝试。使用的是 DSH 的估算用量，未必等于服务商账单显示的输入 token。
+例如模型窗口为 272K，默认在约 190K 开始尝试；若窗口为 1M，则在约 700K 开始尝试。使用的是 DSH 的估算用量，未必等于服务商账单显示的输入 token。
 
 ## 卸载
 
@@ -67,14 +67,14 @@ dsh plugin --profile desktop remove dsh-smart-compact
 ## 兼容性及局限
 
 - 对照 DSH 0.1.0-rc.6 / 0.1.7-alpha 系列公开的 `agent/pre-step`、`agentPresets.serviceFor`、`tokenMeter`、`sessionProjections` 接口设计；实际 `desktop` Profile 的运行验收仍需在你的 DSH 实例进行。
-- 输入区圆环基于 DSH `conversation.input.right` 插槽、`contextPressure` 投影构建。界面与本地 HTTP 设置端点仅经过模拟和静态检查，尚未在目标 DSH Desktop 版本实测。界面不可用时不影响 Host 端压缩。
+- 插件的设置卡片通过 DSH `settings.plugin.item` 插槽挂载；不覆盖或修改 DSH 内置圆环和统计面板。设置卡片与本地 HTTP 设置端点仅经过模拟和静态检查，尚未在目标 DSH Desktop 版本实测。界面不可用时不影响 Host 端压缩。
 - 不修改原生摘要提示词；关键上下文的保留质量由 DSH compaction-basic 决定，无法做到零信息损失。
 - 如果已经安装其他自动压缩插件（如 `auto-compact` / `dsh-auto-compact`），请先停用其中一个，避免重复策略竞争。
 - 仅用于合法的长会话上下文管理；不会绕过服务商模型的真实上下文窗口、调用额度和计费限制。
 
-## 圆环与设置
+## 原生圆环与插件设置
 
-输入区右侧的小圆环显示当前会话上下文占模型窗口的比例。点击可查看当前使用率、压缩阈值并通过滑杆保存。阈值保存于 `~/.dsh/smart-compact.json`（或 `$DSH_HOME/smart-compact.json`），即改即生效。
+DSH 输入区原生圆环继续负责显示使用率和详细 Token 统计。自动压缩插件不再生成第二个圆环。请打开「设置 → 插件 → 可配置」，展开 Smart Compact 卡片，通过滑杆保存触发阈值。阈值保存于 `~/.dsh/smart-compact.json`（或 `$DSH_HOME/smart-compact.json`），即改即生效。
 
 **安全约束：**设置接口仅接受 `localhost` / `127.0.0.1` / `::1` 的本地同源请求；如果 DSH Web 暴露在远程地址，该面板可能无法更改配置，自动压缩仍按已有设置工作。
 

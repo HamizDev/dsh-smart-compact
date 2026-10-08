@@ -1,0 +1,55 @@
+{
+  "name": "dsh-smart-compact",
+  "version": "0.2.0",
+  "description": "DSH context compaction using its native engine, with a responsive usage ring and local threshold editor",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "smart-compact.example.json",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-runtime"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check lib/index.js && node --check lib/client.js && npm test"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "auto-compact",
+    "context",
+    "coding-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HamizDev/dsh-smart-compact.git"
+  },
+  "homepage": "https://github.com/HamizDev/dsh-smart-compact#readme",
+  "bugs": {
+    "url": "https://github.com/HamizDev/dsh-smart-compact/issues"
+  }
+}

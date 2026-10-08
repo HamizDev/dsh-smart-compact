@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "triggerRatio": 0.7,
+  "maxTriggerTokens": 262144,
+  "retryGrowthTokens": 2048
+}

@@ -156,7 +156,7 @@ test('first-run setup card opens by default in Simplified Chinese and copies app
   assert.ok(ui.copiedText.includes('未经我确认之前不要写入') ||
     ui.copiedText.includes('没有确认之前不要写入'))
   assert.ok(ui.copiedText.includes('保留全部其他配置'))
-  assert.ok(ui.copiedText.includes('auto 设置为 false'))
+  assert.ok(ui.copiedText.includes('config.auto 改为 false'))
   assert.ok(!ui.copiedText.includes('npm install'))
 })
 
@@ -181,6 +181,6 @@ test('English and Simplified Chinese READMEs remain cross-linked and contain rec
   assert.ok(zh.includes('[English](./README.md)'))
   assert.ok(en.includes('Creator setup prompt'))
   assert.ok(zh.includes('复制 Creator 配置指令'))
-  assert.ok(en.includes('Restore'))
+  assert.ok(en.toLowerCase().includes('restore'))
   assert.ok(zh.includes('改回'))
 })

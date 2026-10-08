@@ -10,7 +10,7 @@ A Codex-inspired automatic context compaction **controller** for DeepSeek Harnes
 2. Open **Settings → Plugins → Configurable → Smart Compact**. The setup card expands automatically on first view and explains the next step. It shows the **last observed Agent** backend status, not a guarantee for every Agent Preset.
 3. Press **Copy Creator setup prompt**, switch to **Creator mode** in DSH, and paste the prompt.
 4. Creator must inspect your actual active Preset, preserve all plugins and settings, back up, present a diff and ask for confirmation **before applying anything**. If safe configuration is unavailable, stop.
-5. Create a new conversation using the updated Preset. Return to Smart Compact settings and press **Refresh status**. Look for native \`auto:false\`; test \`/compact\` and recovery.
+5. Create a new conversation using the updated Preset. Return to Smart Compact settings and press **Refresh status**. Look for native `auto:false`; test `/compact` and recovery.
 
 > **Why not a one-click mutation?** The official DSH Preset configuration viewer is read-only and the currently published supported flow is Creator/Bundle configuration. A preset cannot be safely rewritten just by toggling a host plugin row. The plugin deliberately offers a **one-click prompt copy**, not an unsafe one-click rewrite.
 

@@ -1,7 +1,7 @@
 {
   "name": "dsh-smart-compact",
-  "version": "0.2.0",
-  "description": "DSH context compaction using its native engine, with a responsive usage ring and local threshold editor",
+  "version": "0.2.1",
+  "description": "Automatic context compaction for DSH using its native engine, with threshold controls in Plugin Settings (no duplicate context ring)",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
@@ -24,7 +24,7 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings-plugins",
         "@deepseek-ai/dsh-client-runtime"
       ]
     }

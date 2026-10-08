@@ -126,7 +126,7 @@ test('at/above 90% calls native DSH engine and continues the step', async () => 
 test('below threshold, missing capacity or excessively reserved output leaves step unchanged', async () => {
   for (const args of [
     { total: 89999, window: 100000 },
-    { total: 90000, window: undefined },
+    { total: 90000, window: null },
     { total: 40000, window: 100000, reservedOutputTokens: 100000 },
   ]) {
     const rt = fakeRuntime(args)

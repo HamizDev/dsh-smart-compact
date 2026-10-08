@@ -1,6 +1,33 @@
-# DSH Smart Compact v0.4.0
+# DSH Smart Compact v0.4.1
+
+**语言：** [English](./README.md) | 简体中文
 
 面向 DeepSeek Harness（DSH）的 **Codex 风格独占自动压缩控制器**。插件决定自动压缩时机；官方 `compaction-basic` 负责真正的摘要、会话持久化、工具调用配对和手动 `/compact`。
+
+## 安装后怎么启用？（v0.4.1）
+
+1. 使用下方命令安装或升级，**彻底退出并重启 DSH Desktop**。
+2. 打开 **设置 → 插件 → 可配置 → Smart Compact**。插件卡片会默认展开，提示你完成独占模式配置，同时展示**最近一次检测到的 Agent** 的原生压缩状态。
+3. 点击 **「复制 Creator 配置指令」**，在 DSH 内进入 **Creator / 创造模式** 并粘贴。
+4. Creator 必须先核对当前 Preset、备份、展示配置差异与回退方法，**经过你明确确认后** 才能安全应用。
+5. 用修改后的 Preset 新建会话，再返回此处点击 **「刷新检测状态」**。确认最近检测的 Agent 显示 \`auto:false\`，并分别验收 \`/compact\` 和自动溢出恢复。
+
+> 为什么不是安装即“一键改好”？DSH 当前官方 Preset 配置查看器主要是**只读**，不同用户可能自定义了工具、权限和插件。直接重写整份 Preset 会存在破坏配置的风险。所以插件提供**一键复制完整 Creator 指令**，而不是未经确认地覆盖 Preset。
+
+**提示的范围：** 安装后首次打开插件设置卡片时会看到引导（不是一个全局弹窗）。如果所用 DSH Desktop 版本未提供设置卡片插槽或本地设置服务，请按此 README 里的步骤手动配置。检测状态只针对**最近观察到的 Agent**，不代表全部 Preset 均已配置。
+
+## 可直接复制的 Creator 配置指令
+
+\`\`\`text
+请为 DSH Desktop 配置 Smart Compact 独占自动压缩。
+先只读核对当前 Desktop Profile 和目标 Agent Preset，备份相关配置并展示完整差异。
+在目标 Preset 内保留 @deepseek-ai/dsh-compaction-basic，只计划将 config.auto 设置为 false；
+保留其它所有模型、工具、权限、插件、tool-result-pruner、command-compact 和原生配置。
+先给我审阅修改差异和回退步骤，未经我确认不能实际修改。
+只通过 DSH 当前支持的 Creator/Bundle/Preset 操作方式执行，不能猜文件路径、覆盖整个 Preset 或修改官方源码。
+修改后用新会话确认 Smart Compact 正在接管自动压缩，且 /compact 与溢出恢复可用。
+如果无法安全检查或应用，停止并说明原因。
+\`\`\`
 
 ## 如何真正让 Smart Compact 单独控制压缩？
 
@@ -8,7 +35,7 @@
 
 请按顺序操作：
 
-1. 安装或更新 Smart Compact 到 **v0.4.0**。
+1. 安装或更新 Smart Compact 到 **v0.4.1**。
 2. 备份当前 Agent Preset 的配置。
 3. 在 DSH 的 Agent Preset 编辑流程中，编辑**当前会话使用的 Preset**（例如 `standard` / `cordis` / `ptc`，或建立一个自定义 Preset）。
 4. 找到 Preset 内的 `compaction` 分组，**保留启用的** `@deepseek-ai/dsh-compaction-basic`，仅给它设置 `auto: false`。之前的其他设置也必须保留。
@@ -70,7 +97,7 @@
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-重启并确认安装版本为 0.4.0。修改 Preset 后，建议新建一个使用该 Preset 的会话验收。不要用独立 npm/npx 的 DSH CLI 修改受保护的 Desktop Profile。
+重启并确认安装版本为 0.4.1。修改 Preset 后，建议新建一个使用该 Preset 的会话验收。不要用独立 npm/npx 的 DSH CLI 修改受保护的 Desktop Profile。
 
 插件本身的配置文件在 `~/.dsh/smart-compact.json`（或自定义 `$DSH_HOME`）：
 

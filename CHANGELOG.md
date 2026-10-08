@@ -4,10 +4,9 @@
 
 - Add bilingual (English / 简体中文) first-run onboarding in DSH Plugin Settings.
 - Default-expand Smart Compact settings with clear Creator-based setup instructions and a one-click **copy prompt** action; no silent Preset edits or deceptive one-click claim.
-- Show the **last observed Agent's** native compaction engine mode (\`auto:true\`, \`auto:false\`, unknown, missing), and provide a refresh control. No profile/session identifiers are shared.
+- Show the **last observed Agent's** native compaction engine mode (`auto:true`, `auto:false`, unknown, missing), and provide a refresh control. No profile/session identifiers are shared.
 - Keep the DSH native context meter and all existing compaction/overflow behavior unchanged.
 - Refresh README quick starts in both languages and document manual fallback if the Desktop settings slot is unavailable.
-
 
 ## v0.4.0
 

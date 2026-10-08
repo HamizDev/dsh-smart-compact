@@ -1,0 +1,5 @@
+# This bundle mounts the policy on the host plane, not inside an agent preset.
+# One installation covers all sessions using this DSH profile.
+- insert:
+    - id: smart-compact
+      name: dsh-smart-compact

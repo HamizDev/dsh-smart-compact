@@ -1,7 +1,7 @@
 {
   "name": "dsh-smart-compact",
-  "version": "0.4.0",
-  "description": "Codex-style exclusive automatic compaction for DSH, preserving the native summarization backend and overflow retry",
+  "version": "0.4.1",
+  "description": "Codex-inspired automatic context compaction for DSH with bilingual setup guidance and safe exclusive-mode configuration",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {

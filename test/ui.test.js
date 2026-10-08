@@ -51,6 +51,7 @@ test('optional settings route saves ratio atomically and updates effective thres
     apply(ctx)
     assert.equal(route.path, '/dsh-smart-compact/api/config')
     assert.equal((await respond('GET')).body.config.triggerRatio, 0.9)
+    assert.equal((await respond('GET')).body.setup.mode, 'not-observed')
     assert.equal((await respond('POST', { triggerRatio: 0.6 })).status, 200)
     assert.equal((await respond('GET')).body.config.triggerRatio, 0.6)
     assert.equal(JSON.parse(readFileSync(join(path, 'smart-compact.json'), 'utf8')).triggerRatio, 0.6)
@@ -59,6 +60,9 @@ test('optional settings route saves ratio atomically and updates effective thres
     assert.equal((await respond('GET')).body.config.triggerRatio, 0.6)
     await ctx.step({ agent, signal: new AbortController().signal }, async () => {})
     assert.equal(calls.length, 1, '65K tokens should trigger after changing threshold to 60%')
+    const observed = (await respond('GET')).body.setup
+    assert.equal(observed.mode, 'exclusive')
+    assert.match(observed.observedAt, /^[0-9]{4}-/)
   } finally {
     if (previous === undefined) delete process.env.DSH_HOME
     else process.env.DSH_HOME = previous
@@ -86,4 +90,97 @@ test('client settings card loads without adding a duplicate conversation ring', 
   assert.equal(slot.id, 'dsh-smart-compact-settings')
   assert.equal(slot.name, 'settings.plugin.item')
   assert.ok(!readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8').includes('conversation.input.right'))
+})
+
+
+function inspectOnboarding(locale) {
+  let registration
+  let slot
+  let copiedText
+  const navigator = {
+    language: locale,
+    clipboard: { writeText: async (text) => { copiedText = text } },
+  }
+  const document = {
+    documentElement: { lang: locale },
+    querySelector: () => null,
+    createElement: () => ({ setAttribute() {} }),
+    head: { appendChild() {} },
+  }
+  const window = { __ModuleLoader__: { load(value) { registration = value } } }
+  runInNewContext(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), {
+    window, document, navigator,
+  })
+  const React = {
+    useState: (value) => [value, () => {}],
+    useEffect: () => {},
+    createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+  }
+  const plugin = registration.factory((name) => {
+    assert.equal(name, 'react')
+    return React
+  })
+  plugin.apply({ slots: {
+    inject(name, cb) { assert.equal(name, 'settings.plugin.item'); cb() },
+    register(spec, component) { slot = { spec, component } },
+  } })
+  const tree = slot.component()
+  const all = []
+  function visit(value) {
+    if (value == null || typeof value === 'boolean') return
+    if (Array.isArray(value)) { value.forEach(visit); return }
+    if (typeof value === 'object') {
+      all.push(value)
+      value.children?.forEach(visit)
+    }
+  }
+  visit(tree)
+  const text = all.flatMap(node => node.children).filter(x => typeof x === 'string')
+  return {
+    slot, all, text,
+    get copiedText() { return copiedText },
+    buttons: all.filter(node => node.type === 'button'),
+  }
+}
+
+test('first-run setup card opens by default in Simplified Chinese and copies approval-first prompt', async () => {
+  const ui = inspectOnboarding('zh-CN')
+  assert.equal(ui.slot.spec.id, 'dsh-smart-compact-settings')
+  assert.ok(ui.text.some(x => x.includes('启用独占压缩')))
+  assert.ok(ui.text.some(x => x.includes('尚未检测到 Agent')))
+  assert.ok(ui.text.some(x => x.includes('复制 Creator 配置指令')))
+  const copy = ui.buttons.find(button => button.children.includes('复制 Creator 配置指令'))
+  assert.ok(copy)
+  copy.props.onClick()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.ok(ui.copiedText.includes('未经我确认之前不要写入') ||
+    ui.copiedText.includes('没有确认之前不要写入'))
+  assert.ok(ui.copiedText.includes('保留全部其他配置'))
+  assert.ok(ui.copiedText.includes('config.auto 改为 false'))
+  assert.ok(!ui.copiedText.includes('npm install'))
+})
+
+test('English onboarding is translated and never promises to rewrite a preset', async () => {
+  const ui = inspectOnboarding('en-US')
+  assert.ok(ui.text.some(x => x.includes('One more step')))
+  assert.ok(ui.text.some(x => x.includes('Copy Creator setup prompt')))
+  const copy = ui.buttons.find(button => button.children.includes('Copy Creator setup prompt'))
+  copy.props.onClick()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.match(ui.copiedText, /explicit approval before writing/)
+  assert.match(ui.copiedText, /Preserve all other tools/)
+  assert.match(ui.copiedText, /auto: false/)
+  assert.ok(ui.all.some(node => node.type === 'a' &&
+    node.props.href?.endsWith('/README.md')))
+})
+
+test('English and Simplified Chinese READMEs remain cross-linked and contain recovery guidance', () => {
+  const en = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  const zh = readFileSync(new URL('../README.zh-CN.md', import.meta.url), 'utf8')
+  assert.ok(en.includes('[简体中文](./README.zh-CN.md)'))
+  assert.ok(zh.includes('[English](./README.md)'))
+  assert.ok(en.includes('Creator setup prompt'))
+  assert.ok(zh.includes('复制 Creator 配置指令'))
+  assert.ok(en.toLowerCase().includes('restore'))
+  assert.ok(zh.includes('改回'))
 })

@@ -1,6 +1,8 @@
 {
   "enabled": true,
-  "triggerRatio": 0.7,
+  "triggerRatio": 0.9,
+  "effectiveContextWindowRatio": 0.95,
   "maxTriggerTokens": null,
-  "retryGrowthTokens": 2048
+  "retryGrowthTokens": 2048,
+  "modelPolicies": []
 }

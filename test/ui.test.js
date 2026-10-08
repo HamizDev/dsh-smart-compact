@@ -66,7 +66,7 @@ test('optional settings route saves ratio atomically and updates effective thres
   }
 })
 
-test('client artifact loads and exports a slot-based plugin without browser bundling', () => {
+test('client settings card loads without adding a duplicate conversation ring', () => {
   let registration
   const document = {
     querySelector: () => null,
@@ -82,6 +82,8 @@ test('client artifact loads and exports a slot-based plugin without browser bund
   })
   assert.deepEqual(Array.from(plugin.inject), ['slots'])
   let slot
-  plugin.apply({ slots: { inject(name, fn) { assert.equal(name, 'conversation.input.right'); fn() }, register(spec) { slot = spec } } })
-  assert.equal(slot.id, 'dsh-smart-compact-ring')
+  plugin.apply({ slots: { inject(name, fn) { assert.equal(name, 'settings.plugin.item'); fn() }, register(spec) { slot = spec } } })
+  assert.equal(slot.id, 'dsh-smart-compact-settings')
+  assert.equal(slot.name, 'settings.plugin.item')
+  assert.ok(!readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8').includes('conversation.input.right'))
 })

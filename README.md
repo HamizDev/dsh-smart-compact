@@ -2,14 +2,14 @@
 
 [简体中文说明](./README.zh-CN.md)
 
-A DeepSeek Harness plugin that automatically compacts conversation context using the **native DSH compaction engine**. It offers a session context-usage ring next to the conversation input and a local threshold slider. It does not forge continuation messages or rewrite conversation history.
+A DeepSeek Harness plugin that automatically compacts conversation context using the **native DSH compaction engine**. It preserves DSH's built-in context meter and provides an automatic-compaction threshold slider in DSH Plugin Settings. It does not forge continuation messages or rewrite conversation history.
 
 ## Features
 
-- Trigger before a model step at **70% of model context** (default), capped at **262,144 tokens** on very large models.
+- Trigger before a model step at **70% of model context** (default), with no default absolute token cap (for a 1M model, 70% is about 700K).
 - Delegate summarization and persistence to DSH `compaction-basic`.
 - No additional runtime npm dependencies or outbound telemetry.
-- Client-side context usage ring, with a threshold slider persisted to the local DSH home directory.
+- Configurable threshold in Settings → Plugins → Configurable; DSH's native context usage ring remains unchanged.
 - Fall back gracefully if the UI, projection or compaction engine is unavailable.
 
 ## Install on DSH Desktop
@@ -32,12 +32,12 @@ Optional file: `~/.dsh/smart-compact.json` (or `$DSH_HOME/smart-compact.json`):
 {
   "enabled": true,
   "triggerRatio": 0.7,
-  "maxTriggerTokens": 262144,
+  "maxTriggerTokens": null,
   "retryGrowthTokens": 2048
 }
 ```
 
-The slider changes `triggerRatio` without a restart. Changes to this file made by hand require a restart. The settings endpoint only allows loopback, same-origin requests.
+The Settings → Plugins slider changes `triggerRatio` without a restart. Set `maxTriggerTokens` to an integer to enable an optional absolute cap. Changes to this file made by hand require a restart. The settings endpoint only allows loopback, same-origin requests.
 
 ## Verify
 
@@ -46,7 +46,7 @@ npm test
 npm run check
 ```
 
-**Compatibility note:** the host behavior has mock coverage. The Web UI and persistence endpoint have static / mock tests, but target-version DSH Desktop integration has not yet been verified. This is a third-party plugin, not an official DeepSeek project.
+**Compatibility note:** the host behavior has mock coverage. The settings card and persistence endpoint have static / mock tests, but target-version DSH Desktop integration has not yet been verified. This is a third-party plugin, not an official DeepSeek project.
 
 ## License
 

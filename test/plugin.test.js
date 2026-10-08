@@ -29,10 +29,11 @@ async function step(runtime, signal = new AbortController().signal) {
   return nextCount
 }
 
-test('defaults, threshold cap and custom config are correct', () => {
+test('defaults, optional token cap and custom config are correct', () => {
   assert.equal(DEFAULTS.triggerRatio, 0.7)
   assert.equal(triggerAtTokens(100000, DEFAULTS), 70000)
-  assert.equal(triggerAtTokens(1000000, DEFAULTS), 262144)
+  assert.equal(triggerAtTokens(1000000, DEFAULTS), 700000)
+  assert.equal(triggerAtTokens(1000000, validateConfig({ maxTriggerTokens: 262144 })), 262144)
   assert.equal(triggerAtTokens(1000000, validateConfig({ maxTriggerTokens: null })), 700000)
   assert.equal(triggerAtTokens(null, DEFAULTS), null)
   assert.equal(validateConfig({ triggerRatio: 0.6 }).triggerRatio, 0.6)

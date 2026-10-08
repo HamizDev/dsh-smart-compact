@@ -2,52 +2,66 @@
 
 [简体中文说明](./README.zh-CN.md)
 
-A DeepSeek Harness plugin that automatically compacts conversation context using the **native DSH compaction engine**. It preserves DSH's built-in context meter and provides an automatic-compaction threshold slider in DSH Plugin Settings. It does not forge continuation messages or rewrite conversation history.
+A **Codex-inspired** automatic context compaction trigger for DeepSeek Harness (DSH). It uses DSH's native `compaction-basic` engine, keeps DSH's built-in context meter and statistics popup, and provides threshold controls under **Settings → Plugins → Configurable**.
 
-## Features
+## Codex-style policy (v0.3.0)
 
-- Trigger before a model step at **70% of model context** (default), with no default absolute token cap (for a 1M model, 70% is about 700K).
-- Delegate summarization and persistence to DSH `compaction-basic`.
-- No additional runtime npm dependencies or outbound telemetry.
-- Configurable threshold in Settings → Plugins → Configurable; DSH's native context usage ring remains unchanged.
-- Fall back gracefully if the UI, projection or compaction engine is unavailable.
+- **90% default** of the active model's reported context window. No default absolute 256K cap.
+- **95% effective-window safety ceiling**, minus the latest routed request's **explicit** reserved output `maxTokens` when present.
+- Optional exact `provider` / `model` policy with a *lower* threshold ratio or `autoCompactTokenLimit`.
+- The plugin checks between agent steps and delegates actual compaction to DSH (no forged continuation messages, no direct session-history edits). It leaves `/compact` intact.
+- Skips unavailable model capacity rather than inventing a token count. Does not continuously retry the same unchanged or failed attempt.
+- No telemetry or extra runtime npm dependencies.
 
-## Install on DSH Desktop
+Calculation: `min(floor(contextWindow * ratio), floor(contextWindow * 0.95) - routedMaxTokens, optionalGlobalLimit, optionalModelLimit)`. Default `ratio = 0.90`. If the request doesn't expose a reliable output cap, this plugin reserves **0**, leaving the DSH engine's own safety policy in control.
 
-Launch DSH Desktop once to initialize its profile, then fully quit it. Install using the **Desktop-provided** `dsh` command (not the npm/npx command, which cannot manage the reserved desktop profile):
+| Window | Trigger without explicit reserved output |
+|---|---:|
+| 32K | 28.8K |
+| 128K | 115.2K |
+| 256K | 230.4K |
+| 1M | 900K |
+
+**Important native DSH interaction:** DSH's standard `compaction-basic` independently auto-compacts at about **80%** by default, or earlier to preserve reserved completion tokens and ~65K headroom. This plugin **does not disable, monkey-patch or supersede** that safety behavior. Therefore 90% is this plugin's own threshold **not a promise** that actual compaction will wait until 90%. To align native compaction closer to Codex, adjust `compaction-basic`'s `thresholdRatio` and `headroomTokens` in your DSH agent preset, considering real output reservations and small-window models. Don't switch off overflow recovery.
+
+## Install / upgrade (DSH Desktop)
+
+Close DSH Desktop, then with its bundled CLI:
 
 ```powershell
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-Restart DSH Desktop. If `dsh` is unavailable, use **Manage dsh Command** in DSH Desktop first. A local checkout can also be installed with `dsh plugin --profile desktop add (Get-Location).Path`.
+Restart DSH Desktop and inspect the Plugins list/logs. If an older release is already installed, confirm the installed plugin source/version actually updates to 0.3.0 using your DSH version's plugin update/reinstall workflow. Never use an independent npm/npx CLI to manage the reserved `desktop` Profile.
 
-On non-Desktop DSH, substitute `web` for `desktop`.
+## Configuration
 
-## Configure
-
-Optional file: `~/.dsh/smart-compact.json` (or `$DSH_HOME/smart-compact.json`):
+Edit `~/.dsh/smart-compact.json` (or `$DSH_HOME/smart-compact.json`), or set the global ratio from **Settings → Plugins → Configurable → Smart Compact**:
 
 ```json
 {
   "enabled": true,
-  "triggerRatio": 0.7,
+  "triggerRatio": 0.9,
+  "effectiveContextWindowRatio": 0.95,
   "maxTriggerTokens": null,
-  "retryGrowthTokens": 2048
+  "retryGrowthTokens": 2048,
+  "modelPolicies": [
+    { "provider": "example-provider", "model": "example-128k-model", "triggerRatio": 0.85 },
+    { "provider": "example-provider", "model": "example-1m-model", "autoCompactTokenLimit": 600000 }
+  ]
 }
 ```
 
-The Settings → Plugins slider changes `triggerRatio` without a restart. Set `maxTriggerTokens` to an integer to enable an optional absolute cap. Changes to this file made by hand require a restart. The settings endpoint only allows loopback, same-origin requests.
+The example model names above are placeholders, **not real model IDs**. Remove the entries or use the exact names found in your DSH routed request. Per-model overrides can only lower the global threshold (never exceed Codex's 90% ceiling). Set `maxTriggerTokens` to an integer for a global absolute ceiling; default is `null`.
 
-## Verify
+Previously saved `triggerRatio: 0.7` or `maxTriggerTokens: 262144` remains effective across upgrades until you change it. The settings slider changes `triggerRatio` immediately; editing the JSON file requires restarting DSH.
+
+## Compatibility and tests
 
 ```bash
-npm test
 npm run check
 ```
 
-**Compatibility note:** the host behavior has mock coverage. The settings card and persistence endpoint have static / mock tests, but target-version DSH Desktop integration has not yet been verified. This is a third-party plugin, not an official DeepSeek project.
+Unit/mocked tests cover varying context windows, model changes, reserved output, independent native delegation, failure continuation and settings access. **Actual DSH Desktop behavior remains to be verified** on the user's installed version; the native backend may compact earlier. This project is community maintained, not an official Codex or DeepSeek product.
 
-## License
-
-MIT.
+License: MIT.

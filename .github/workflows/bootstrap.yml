@@ -1,10 +1,10 @@
-name: Bootstrap DSH Smart Compact version history
+name: Finish DSH Smart Compact version history
 
 on:
   push:
     branches: [main]
     paths:
-      - '.bootstrap/part-3.b64'
+      - '.github/workflows/bootstrap.yml'
 
 permissions:
   contents: write
@@ -19,26 +19,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify archive and publish v0.1.0 then v0.2.0
+      - name: Verify historical tag and publish v0.2.0
         shell: bash
         run: |
           set -euo pipefail
           cat .bootstrap/part-{0..3}.b64 | base64 -d > "$RUNNER_TEMP/sources.tar.xz"
           echo "74d8e47863bdc16372d3cdf80cedec70c2add4e430cf5c80f5deb49bf7b92297  $RUNNER_TEMP/sources.tar.xz" | sha256sum -c -
-          if git show-ref --tags --quiet --verify refs/tags/v0.1.0 || git show-ref --tags --quiet --verify refs/tags/v0.2.0; then
-            echo 'Release tags already exist; not overwriting'
+          git show-ref --verify refs/tags/v0.1.0
+          if git show-ref --tags --quiet --verify refs/tags/v0.2.0; then
+            echo 'v0.2.0 already published, refusing to overwrite'
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/smart-compact-sources"
           tar -xJf "$RUNNER_TEMP/sources.tar.xz" -C "$RUNNER_TEMP/smart-compact-sources"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for version in v0.1.0 v0.2.0; do
-            rsync -a --delete --exclude='.git' "$RUNNER_TEMP/smart-compact-sources/versions/$version/" ./
-            node --check lib/index.js
-            npm test
-            git add -A
-            git commit -m "Release DSH Smart Compact $version"
-            git tag -a "$version" -m "DSH Smart Compact $version"
-          done
-          git push origin HEAD:main refs/tags/v0.1.0 refs/tags/v0.2.0
+          git merge -s ours --no-ff v0.1.0 -m 'chore: preserve v0.1.0 release in ancestry'
+          rsync -a --delete --exclude='.git' --exclude='.github/workflows/' "$RUNNER_TEMP/smart-compact-sources/versions/v0.2.0/" ./
+          node --check lib/index.js
+          npm run check
+          git add -A
+          git commit -m 'Release DSH Smart Compact v0.2.0'
+          git tag -a v0.2.0 -m 'DSH Smart Compact v0.2.0'
+          git push origin HEAD:main refs/tags/v0.2.0

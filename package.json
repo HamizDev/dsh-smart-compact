@@ -1,7 +1,7 @@
 {
   "name": "dsh-smart-compact",
-  "version": "0.3.0",
-  "description": "Codex-inspired DSH automatic context compaction, 90% model-window defaults, per-model limits and native DSH settings integration",
+  "version": "0.4.0",
+  "description": "Codex-style exclusive automatic compaction for DSH, preserving the native summarization backend and overflow retry",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {

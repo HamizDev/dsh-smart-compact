@@ -29,7 +29,7 @@ test('optional settings route saves ratio atomically and updates effective thres
   const calls = []
   const ctx = {
     logger: () => ({ info() {}, warn() {} }),
-    on(_event, fn) { this.step = fn },
+    on(name, fn) { if (name === 'agent/pre-step') this.step = fn },
     agentPresets: { serviceFor: () => ({ config: { auto: false, maxOverflowRetries: 1 }, compactIfNeeded: async () => { calls.push('compact'); return {} } }) },
     sessionProjections: { snapshot: () => ({ values: { contextPressure: { contextWindow: 100000 } } }) },
     tokenMeter: { measure: () => ({ totalTokens: 65000 }) },

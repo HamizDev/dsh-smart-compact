@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.bootstrap/sources.tar.gz'
+      - '.bootstrap/sources.tar.xz'
 
 permissions:
   contents: write
@@ -23,13 +23,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'de2803565eb9bdf407d83a5009b4e13f71813c4fba03b744f8d5210bdd36fc30  .bootstrap/sources.tar.gz' | sha256sum -c -
+          echo '74d8e47863bdc16372d3cdf80cedec70c2add4e430cf5c80f5deb49bf7b92297  .bootstrap/sources.tar.xz' | sha256sum -c -
           if git show-ref --tags --quiet --verify refs/tags/v0.1.0 || git show-ref --tags --quiet --verify refs/tags/v0.2.0; then
             echo 'Release tags already exist; not overwriting'
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/smart-compact-sources"
-          tar -xzf .bootstrap/sources.tar.gz -C "$RUNNER_TEMP/smart-compact-sources"
+          tar -xJf .bootstrap/sources.tar.xz -C "$RUNNER_TEMP/smart-compact-sources"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for version in v0.1.0 v0.2.0; do

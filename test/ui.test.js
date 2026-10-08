@@ -62,7 +62,7 @@ test('optional settings route saves ratio atomically and updates effective thres
     assert.equal(calls.length, 1, '65K tokens should trigger after changing threshold to 60%')
     const observed = (await respond('GET')).body.setup
     assert.equal(observed.mode, 'exclusive')
-    assert.match(observed.observedAt, /^\\d{4}-/)
+    assert.match(observed.observedAt, /^[0-9]{4}-/)
   } finally {
     if (previous === undefined) delete process.env.DSH_HOME
     else process.env.DSH_HOME = previous

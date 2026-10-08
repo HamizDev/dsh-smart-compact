@@ -1,0 +1,43 @@
+name: Bootstrap DSH Smart Compact version history
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bootstrap/sources.tar.gz'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify archive and publish v0.1.0 then v0.2.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'de2803565eb9bdf407d83a5009b4e13f71813c4fba03b744f8d5210bdd36fc30  .bootstrap/sources.tar.gz' | sha256sum -c -
+          if git show-ref --tags --quiet --verify refs/tags/v0.1.0 || git show-ref --tags --quiet --verify refs/tags/v0.2.0; then
+            echo 'Release tags already exist; not overwriting'
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/smart-compact-sources"
+          tar -xzf .bootstrap/sources.tar.gz -C "$RUNNER_TEMP/smart-compact-sources"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for version in v0.1.0 v0.2.0; do
+            rsync -a --delete --exclude='.git' "$RUNNER_TEMP/smart-compact-sources/versions/$version/" ./
+            node --check lib/index.js
+            npm test
+            git add -A
+            git commit -m "Release DSH Smart Compact $version"
+            git tag -a "$version" -m "DSH Smart Compact $version"
+          done
+          git push origin HEAD:main refs/tags/v0.1.0 refs/tags/v0.2.0

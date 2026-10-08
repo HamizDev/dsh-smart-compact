@@ -50,7 +50,7 @@ test('optional settings route saves ratio atomically and updates effective thres
   try {
     apply(ctx)
     assert.equal(route.path, '/dsh-smart-compact/api/config')
-    assert.equal((await respond('GET')).body.config.triggerRatio, 0.7)
+    assert.equal((await respond('GET')).body.config.triggerRatio, 0.9)
     assert.equal((await respond('POST', { triggerRatio: 0.6 })).status, 200)
     assert.equal((await respond('GET')).body.config.triggerRatio, 0.6)
     assert.equal(JSON.parse(readFileSync(join(path, 'smart-compact.json'), 'utf8')).triggerRatio, 0.6)

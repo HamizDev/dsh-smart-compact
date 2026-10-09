@@ -1,6 +1,6 @@
 {
   "name": "dsh-smart-compact",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Codex-inspired automatic context compaction for DSH with bilingual setup guidance and safe exclusive-mode configuration",
   "type": "module",
   "main": "./lib/index.js",

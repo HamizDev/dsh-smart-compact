@@ -86,10 +86,14 @@ test('client settings card loads without adding a duplicate conversation ring', 
   })
   assert.deepEqual(Array.from(plugin.inject), ['slots'])
   let slot
-  plugin.apply({ slots: { inject(name, fn) { assert.equal(name, 'settings.plugin.item'); fn() }, register(spec) { slot = spec } } })
-  assert.equal(slot.id, 'dsh-smart-compact-settings')
-  assert.equal(slot.name, 'settings.plugin.item')
-  assert.ok(!readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8').includes('conversation.input.right'))
+  plugin.apply({ slots: { inject(name, fn) { assert.equal(name, 'settings.plugins.tab'); fn() }, register(spec) { slot = spec } } })
+  assert.equal(slot.id, 'smart-compact')
+  assert.equal(slot.name, 'settings.plugins.tab')
+  assert.equal(slot.order, 20)
+  assert.equal(slot.label, 'Smart Compact')
+  const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  assert.ok(!client.includes('conversation.input.right'))
+  assert.ok(!client.includes('settings.plugin.item'))
 })
 
 
@@ -121,7 +125,7 @@ function inspectOnboarding(locale) {
     return React
   })
   plugin.apply({ slots: {
-    inject(name, cb) { assert.equal(name, 'settings.plugin.item'); cb() },
+    inject(name, cb) { assert.equal(name, 'settings.plugins.tab'); cb() },
     register(spec, component) { slot = { spec, component } },
   } })
   const tree = slot.component()
@@ -145,7 +149,8 @@ function inspectOnboarding(locale) {
 
 test('first-run setup card opens by default in Simplified Chinese and copies approval-first prompt', async () => {
   const ui = inspectOnboarding('zh-CN')
-  assert.equal(ui.slot.spec.id, 'dsh-smart-compact-settings')
+  assert.equal(ui.slot.spec.id, 'smart-compact')
+  assert.equal(ui.slot.spec.name, 'settings.plugins.tab')
   assert.ok(ui.text.some(x => x.includes('启用独占压缩')))
   assert.ok(ui.text.some(x => x.includes('尚未检测到 Agent')))
   assert.ok(ui.text.some(x => x.includes('复制 Creator 配置指令')))
@@ -183,4 +188,18 @@ test('English and Simplified Chinese READMEs remain cross-linked and contain rec
   assert.ok(zh.includes('复制 Creator 配置指令'))
   assert.ok(en.toLowerCase().includes('restore'))
   assert.ok(zh.includes('改回'))
+})
+
+
+test('DSH current plugin Settings UI tab contract: separate named tab, not legacy configurable card', () => {
+  const client = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  const guide = readFileSync(new URL('../README.zh-CN.md', import.meta.url), 'utf8')
+  assert.match(client, /settings\.plugins\.tab/)
+  assert.ok(!client.includes('settings.plugin.item'))
+  assert.equal(manifest.dsh.client.platform, 'web')
+  assert.equal(manifest.exports['./client'], './lib/client.js')
+  assert.ok(manifest.files.includes('lib'))
+  assert.ok(guide.includes('Smart Compact'))
+  assert.ok(guide.includes('内置插件'))
 })

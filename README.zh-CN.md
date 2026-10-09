@@ -1,4 +1,4 @@
-# DSH Smart Compact v0.4.1
+# DSH Smart Compact v0.4.2
 
 **语言：** [English](./README.md) | 简体中文
 
@@ -7,7 +7,7 @@
 ## 安装后怎么启用？（v0.4.1）
 
 1. 使用下方命令安装或升级，**彻底退出并重启 DSH Desktop**。
-2. 打开 **设置 → 插件 → 可配置 → Smart Compact**。插件卡片会默认展开，提示你完成独占模式配置，同时展示**最近一次检测到的 Agent** 的原生压缩状态。
+2. 打开 **设置 → 内置插件 → Smart Compact 标签页**。Smart Compact 独立标签页中的引导面板会默认展开，提示你完成独占模式配置，同时展示**最近一次检测到的 Agent** 的原生压缩状态。
 3. 点击 **「复制 Creator 配置指令」**，在 DSH 内进入 **Creator / 创造模式** 并粘贴。
 4. Creator 必须先核对当前 Preset、备份、展示配置差异与回退方法，**经过你明确确认后** 才能安全应用。
 5. 用修改后的 Preset 新建会话，再返回此处点击 **「刷新检测状态」**。确认最近检测的 Agent 显示 `auto:false`，并分别验收 `/compact` 和自动溢出恢复。
@@ -35,7 +35,7 @@
 
 请按顺序操作：
 
-1. 安装或更新 Smart Compact 到 **v0.4.1**。
+1. 安装或更新 Smart Compact 到 **v0.4.2**。
 2. 备份当前 Agent Preset 的配置。
 3. 在 DSH 的 Agent Preset 编辑流程中，编辑**当前会话使用的 Preset**（例如 `standard` / `cordis` / `ptc`，或建立一个自定义 Preset）。
 4. 找到 Preset 内的 `compaction` 分组，**保留启用的** `@deepseek-ai/dsh-compaction-basic`，仅给它设置 `auto: false`。之前的其他设置也必须保留。
@@ -70,7 +70,7 @@
 - **无法确认引擎状态**：安全旁路并记录警告，不盲目停用原生机制。
 - **真溢出**（错误码 `CONTEXT_WINDOW_EXCEEDED`）：最多重试一次（可配置），且仅当会话表层的持久修订号已推进才执行重试。无修改、取消、非溢出错误一律保留原错误。
 - **手动压缩**：DSH 自带的 `/compact` 不变。
-- **界面**：直接使用 DSH 原生 Token 圆环；阈值在「设置 → 插件 → 可配置 → Smart Compact」调整。
+- **界面**：直接使用 DSH 原生 Token 圆环；阈值在「设置 → 内置插件 → Smart Compact 标签页」调整。
 
 如果将来**停用或卸载 Smart Compact**，请先把各 Preset 中的原生 `compaction-basic config.auto` **改回 `true`**，否则会失去原生自动压缩和溢出恢复。
 
@@ -97,7 +97,7 @@
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-重启并确认安装版本为 0.4.1。修改 Preset 后，建议新建一个使用该 Preset 的会话验收。不要用独立 npm/npx 的 DSH CLI 修改受保护的 Desktop Profile。
+重启并确认安装版本为 0.4.2。修改 Preset 后，建议新建一个使用该 Preset 的会话验收。不要用独立 npm/npx 的 DSH CLI 修改受保护的 Desktop Profile。
 
 插件本身的配置文件在 `~/.dsh/smart-compact.json`（或自定义 `$DSH_HOME`）：
 
@@ -119,5 +119,7 @@ dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```powershell
 npm run check
 ```
+
+**注意：左侧导航的「插件」是插件管理器，主要显示已安装和运行状态；此处的引导位于独立的「设置 → 内置插件 → Smart Compact」标签页，二者不是同一个页面。**
 
 以上测试使用 DSH 的模拟回调与压缩引擎，并非你的实际 Desktop 集成验收。项目采用 MIT 开源许可，非官方 DeepSeek / Codex 插件。

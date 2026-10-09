@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.2
+
+- Fix missing setup UI in current DSH Desktop: the previous `settings.plugin.item` legacy slot is no longer declared.
+- Register a **Smart Compact** tab via the supported `settings.plugins.tab` slot with `id`, `order`, and `label`; render the onboarding panel as a normal section inside the tab.
+- Correct both English and Simplified Chinese README navigation paths: Settings → Built-in Plugins → Smart Compact, not the sidebar plugin-manager list or the removed Configurable slot.
+- Test the current DSH settings-tab registration contract; keep the existing Host compaction controller unchanged.
+
 ## v0.4.1
 
 - Add bilingual (English / 简体中文) first-run onboarding in DSH Plugin Settings.

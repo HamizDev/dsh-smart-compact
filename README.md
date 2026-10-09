@@ -7,16 +7,16 @@ A Codex-inspired automatic context compaction **controller** for DeepSeek Harnes
 ## Quick start (v0.4.1)
 
 1. Install/update with the **DSH Desktop** CLI (see below) and restart Desktop.
-2. Open **Settings → Plugins → Configurable → Smart Compact**. The setup card expands automatically on first view and explains the next step. It shows the **last observed Agent** backend status, not a guarantee for every Agent Preset.
+2. Open **Settings → Built-in Plugins → Smart Compact tab**. The Smart Compact tab's setup panel opens automatically on first view and explains the next step. It shows the **last observed Agent** backend status, not a guarantee for every Agent Preset.
 3. Press **Copy Creator setup prompt**, switch to **Creator mode** in DSH, and paste the prompt.
 4. Creator must inspect your actual active Preset, preserve all plugins and settings, back up, present a diff and ask for confirmation **before applying anything**. If safe configuration is unavailable, stop.
 5. Create a new conversation using the updated Preset. Return to Smart Compact settings and press **Refresh status**. Look for native `auto:false`; test `/compact` and recovery.
 
 > **Why not a one-click mutation?** The official DSH Preset configuration viewer is read-only and the currently published supported flow is Creator/Bundle configuration. A preset cannot be safely rewritten just by toggling a host plugin row. The plugin deliberately offers a **one-click prompt copy**, not an unsafe one-click rewrite.
 
-Installation does **not** automatically modify the active Preset or display a global toast. The onboarding card is visible under **Settings → Plugins → Configurable** whenever Smart Compact's client UI is loaded. If your DSH version lacks the client settings slot or optional local settings endpoint, follow the README steps instead; Host compaction remains independent.
+Installation does **not** automatically modify the active Preset or display a global toast. The onboarding panel is visible under **Settings → Built-in Plugins → Smart Compact tab** whenever Smart Compact's client UI is loaded. If your DSH version lacks the client settings slot or optional local settings endpoint, follow the README steps instead; Host compaction remains independent.
 
-## Exclusive mode (v0.4.1)
+## Exclusive mode (v0.4.2)
 
 **Important: installing this bundle does NOT silently disable native compaction.** In DSH Desktop, `compaction-basic` lives inside the active Agent Preset (e.g. standard/cordis/ptc), not the host root. Changing or disabling the host's similarly named row is ineffective. DSH preset patches cannot safely target that nested child without restating the whole preset; we intentionally do not overwrite any user's Agent Presets.
 
@@ -79,11 +79,11 @@ Quit DSH Desktop and use the `dsh` command bundled with Desktop:
 dsh plugin --profile desktop add github:HamizDev/dsh-smart-compact
 ```
 
-Restart Desktop, check the actual installed version (0.4.1), then apply the **Agent Preset** change above. Existing sessions may need to be recreated to adopt the new preset.
+Restart Desktop, check the actual installed version (0.4.2), then apply the **Agent Preset** change above. Existing sessions may need to be recreated to adopt the new preset.
 
 ### Configuration
 
-Plugin-local configuration: `~/.dsh/smart-compact.json` or `$DSH_HOME/smart-compact.json`. The plugin's slider is in **Settings → Plugins → Configurable**; the native context meter remains untouched.
+Plugin-local configuration: `~/.dsh/smart-compact.json` or `$DSH_HOME/smart-compact.json`. The plugin's slider is in **Settings → Built-in Plugins → Smart Compact tab**; the native context meter remains untouched. **Do not confuse the sidebar Plugin Manager (installed/running status) with the separate Settings → Built-in Plugins page containing the Smart Compact tab.**
 
 ```json
 {
